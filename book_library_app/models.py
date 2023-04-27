@@ -1,6 +1,8 @@
+from flask_sqlalchemy import BaseQuery
 from book_library_app import db
 from datetime import datetime
 from marshmallow import Schema, fields, validate, validates, ValidationError
+from werkzeug.datastructures import ImmutableDict
 
 class Author(db.Model):   # class Author will be use to create table in db
     __tablename__ = 'authors'
@@ -13,6 +15,41 @@ class Author(db.Model):   # class Author will be use to create table in db
     def __repr__(self):
         return f'<{self.__class__.__name__}>: {self.first_name} {self.last_name}'
 
+
+    @staticmethod
+    def get_schema_args(fields: str) -> dict:
+        schema_args = {'many': True}
+        if fields:
+            schema_args['only'] = [field for field in fields.split(',') if field in Author.__table__.columns]
+        return schema_args
+
+    @staticmethod
+    def apply_order(query: BaseQuery, sort_keys: str) -> BaseQuery:
+        if sort_keys:
+            for key in sort_keys.split(','):
+                desc = False
+                if key.startswith('-'):
+                    key = key[1:]
+                    desc = True
+                column_attr = getattr(Author, key, None)
+                if column_attr is not None:
+                    query = query.order_by(column_attr.desc()) if desc else query.order_by(column_attr)
+        return query
+
+
+    @staticmethod
+    def apply_filter(query: BaseQuery, params: ImmutableDict) -> BaseQuery:
+        for param, value in params.items():
+            if param not in {'fields', 'sort'}:
+                column_attr = getattr(Author, param, None)
+                if column_attr is not None:
+                    if param == 'birth_date':
+                        try:
+                            value = datetime.strptime(value, '%d-%m-%Y').date()
+                        except ValueError:
+                            continue
+                    query = query.filter(column_attr == value)
+        return query
 
 class AuthorSchema(Schema):
     id = fields.Integer(dump_only=True)
