@@ -14,6 +14,6 @@ class Config:   # keep setting of our application
     SECRET_KEY = os.environ.get('SECRET_KEY')  # Ensure data security
     SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_TRACK_MODIFICATIONS = False    # Requires extra memory
-
+    PER_PAGE = 5
 
 #print(Config.SECRET_KEY)   # check if key is correct
